@@ -8,6 +8,7 @@ from models.ItemModel import ItemModel
 class Item(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('price', type=float, required=True, help="Please put a price")
+    parser.add_argument('store_id', type=int, required=True, help="Every item need a store id")
 
     @jwt_required()
     def get(self, name):
@@ -23,7 +24,7 @@ class Item(Resource):
 
         data = Item.parser.parse_args()
 
-        item = ItemModel(None, name, data['price'])
+        item = ItemModel(name, **data)
         try:
             ItemModel.save_to_db(item)
         except:
@@ -43,7 +44,7 @@ class Item(Resource):
         data = self.parser.parse_args()
         item = ItemModel.find_by_name(name)
         if item is None:
-            item = ItemModel(None, name, data['price'])
+            item = ItemModel(name, **data)
         else:
             item.price = data['price']
 
@@ -53,15 +54,4 @@ class Item(Resource):
 
 class ItemList(Resource):
     def get(self):
-        connection = sqlite3.connect("data.db")
-        cursor = connection.cursor()
-        query = "SELECT * FROM items"
-        result = cursor.execute(query)
-        rows = []
-
-        for row in result:
-            rows.append({"id": row[0], "name": row[1], "price": row[2]})
-
-        connection.commit()
-        connection.close()
-        return rows
+        return [item.json() for item in ItemModel.query.all()]
